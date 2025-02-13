@@ -1,0 +1,21 @@
+# Python virtual environment
+rl_env/
+venv/
+env/
+.env/
+
+# Compiled Python files
+*.pyc
+__pycache__/
+**/__pycache__/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# IDE-specific files (optional)
+.vscode/
+.idea/
