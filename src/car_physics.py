@@ -68,6 +68,7 @@ class Car:
             self.vel += CAR_BOOST_ACCEL
             self.boostLeft -= 1
         self.speedDecay(isOffroad)
+        self.vel = min(CAR_TOP_SPEED, self.vel)
         self.updateMask()
         self.prevPos = copy.deepcopy(self.pos)
         self.pos += self.vel * np.array([np.cos(self.angle * np.pi / 180), -np.sin(self.angle * np.pi / 180)])

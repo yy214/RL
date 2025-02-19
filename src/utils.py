@@ -1,7 +1,8 @@
 import pygame
 import numpy as np
+import torch # tensor conversion
 
-from config import COLOR_BLACK, MARIO_DISPLAY_SIZE, FOV_RATIO, POV_POS
+from config import COLOR_BLACK, MARIO_DISPLAY_SIZE, FOV_RATIO, POV_POS, CAR_TOP_SPEED, CAR_INIT_SPEED_BOOST_COUNT
 
 def blitRotateCenter(surf, image, pos, angle=0):
     """
@@ -37,3 +38,10 @@ def get_rl_state(carViewWindow, lowresImg, car):
     return pygame.surfarray.array_red(carViewWindow)
     # later: input_tensor = torch.tensor(surface_array, dtype=torch.float32).unsqueeze(0) #[1, height, width]
     # input_tensor = input_tensor.unsqueeze(0) #[1, 1, height, width]
+
+def state_batch_to_tensor(state_batch):
+    images = torch.tensor(np.array([s["image"] / 255.0 for s in state_batch], dtype=torch.float32))
+    scalars = torch.tensor(np.array([[s["speed"].item() / CAR_TOP_SPEED, 
+                                      s["boostsLeft"] / CAR_INIT_SPEED_BOOST_COUNT] 
+                                    for s in state_batch]),dtype=torch.float32)
+    return images, scalars
