@@ -1,0 +1,18 @@
+TODO: playable with RL
+    CHECK: fix multidiscrete / multimodal input compatibility
+
+TODO: n-step return
+
+TODO: test criterias:
+    # result of each game
+    # is it good
+    # qualitative tests
+    # get my best perf :)
+
+TODO: test without prioritized experience replay first (epsilon greedy)
+TODO: prioritized experience replay implem
+
+
+TODO: save personal gameplay
+    # press anything to start
+    # reset if R pressed

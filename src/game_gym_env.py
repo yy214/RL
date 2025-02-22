@@ -23,12 +23,14 @@ class CarGameEnv(gym.Env):
         image = spaces.Box(low=0, high=255, shape=FOV_SIZE, dtype=np.uint8)
         speed = spaces.Box(low=0.0, high=CAR_TOP_SPEED, shape=(), dtype=np.float32)
         # timeLeft = spaces.Box(low=0, high=TIME_LIMIT, dtype=np.uint16)
+        currLap = spaces.Discrete(LAP_COUNT)
         boostsLeft = spaces.Discrete(CAR_INIT_SPEED_BOOST_COUNT+1)
 
         self.observation_space = spaces.Dict({
             "image":image,
             "speed":speed,
             # "timeLeft":timeLeft,
+            "currLap":currLap,
             "boostsLeft":boostsLeft,
         })
         self.game = Game()
@@ -41,6 +43,7 @@ class CarGameEnv(gym.Env):
             "image":get_rl_state(self.game.carViewWindow, self.game.lowresImg, self.game.car),
             "speed":self.game.car.vel,
             # "timeLeft": TIME_LIMIT-self.game.timer,
+            "currLap":(self.game.score+1) // len(self.game.checkpoints),
             "boostsLeft":self.game.car.boostCount
         }
 
