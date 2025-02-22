@@ -1,4 +1,3 @@
-import math
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -35,7 +34,8 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
-    
+
+
 class DQN(nn.Module):
 
     def __init__(self):
@@ -49,15 +49,15 @@ class DQN(nn.Module):
         self.fc_image = nn.Linear(self.fc_size, 128)  # Flatten image output
         self.fc_scalar = nn.Linear(3, 32)  # 3 scalar features
         self.fc_merge = nn.Linear(128 + 32, 256)
-        self.fc_out = nn.Linear(256, sum([3,2,2,2]))  # Output Q-values for each discrete action
+        self.fc_out = nn.Linear(256, sum([3, 2, 2, 2]))  # Output Q-values for each discrete action
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, image, scalar):
         # image: 1*30*15
-        x = self.pool(F.relu(self.conv1(image))) # 16*30*15 -> 16*15*7
-        x = self.pool(F.relu(self.conv2(x))) # 32*15*7 -> 32*7*3
-        x = self.pool(F.relu(self.conv3(x))) # 64*7*3 -> 64*3*1
+        x = self.pool(F.relu(self.conv1(image)))  # 16*30*15 -> 16*15*7
+        x = self.pool(F.relu(self.conv2(x)))  # 32*15*7 -> 32*7*3
+        x = self.pool(F.relu(self.conv3(x)))  # 64*7*3 -> 64*3*1
         x = x.view(-1, self.fc_size)
         x = F.relu(self.fc_image(x))
 
@@ -66,7 +66,7 @@ class DQN(nn.Module):
         merged = F.relu(self.fc_merge(merged))
         q_values = self.fc_out(merged)
         return torch.split(q_values, [3, 2, 2, 2], dim=1)
-    
+
 
 def select_action(env, policy_net, state, eps_threshold):
     # epsilon-greedy approach
@@ -75,11 +75,13 @@ def select_action(env, policy_net, state, eps_threshold):
         image, scalar = state_batch_to_tensor([state])
         q_values = policy_net(image, scalar)
         with torch.no_grad():
-            action = [torch.argmax(q, dim=1).detach().cpu().numpy()[0] for q in q_values]  # Take highest Q-value per action
+            # Take highest Q-value per action
+            action = [torch.argmax(q, dim=1).detach().cpu().numpy()[0] for q in q_values]
             return action
             # return policy_net(state).max(1).indices.view(1, 1)
     else:
         return env.action_space.sample()
+
 
 def optimize_model(policy_net, target_net, optimizer, memory, device):
     if len(memory) < BATCH_SIZE:
@@ -158,6 +160,7 @@ def main():
 
     for i_episode in range(1,num_episodes+1):
         # Initialize the environment and get its state
+        print("=========episode %d========"%i_episode)
         state, info = env.reset()
         # state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
         for t in count():
@@ -172,12 +175,13 @@ def main():
             if terminated:
                 next_state = None
             else:
-                next_state = observation #torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
+                next_state = observation
+                # torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
 
             # Store the transition in memory
-            memory.push(state, 
+            memory.push(state,
                         torch.tensor([action]),
-                        next_state, 
+                        next_state,
                         reward)
 
             # Move to the next state
@@ -197,14 +201,14 @@ def main():
             if done:
                 break
         
-        if i_episode%TORCH_CHECKPOINT_FREQ == 0:
+        if i_episode % TORCH_CHECKPOINT_FREQ == 0:
             torch.save({
                 "episode": i_episode,
                 "reward": scores[i_episode-1],
                 "policy_net_dict": policy_net.state_dict(), 
                 "target_net_dict": target_net.state_dict(), 
                 "optimizer_state_dict": optimizer.state_dict(), 
-            }, "%scheckpoint_%d.pt"%(checkpoint_location, i_episode))
+            }, "%scheckpoint_%d.pt" % (checkpoint_location, i_episode))
 
     env.close()
     np.save("../saves/scores/scores.npy", scores)
@@ -212,6 +216,7 @@ def main():
     # plt.plot(scores)
     # plt.show()
     # plt.savefig("../saves/scores/scores.png")
+
 
 if __name__ == "__main__":
     main()
