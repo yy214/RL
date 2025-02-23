@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import matplotlib
 import matplotlib.pyplot as plt
 from collections import namedtuple, deque
@@ -30,7 +31,7 @@ class ReplayMemory(object):
 
     def sample(self, batch_size):
         # need to sample differently, see prioritized experience replay Schaul et al. 2016
-        return np.random.choice(self.memory, batch_size)
+        return random.sample(self.memory, batch_size)
 
     def __len__(self):
         return len(self.memory)
@@ -95,9 +96,9 @@ def optimize_model(policy_net, target_net, optimizer, memory, device):
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                          batch.next_state)), device=device, dtype=torch.bool)
-    non_final_next_states_img, non_final_next_states_scr = state_batch_to_tensor([s for s in batch.next_state
-                                                if s is not None])
+                                            batch.next_state)), device=device, dtype=torch.bool)
+    non_final_next_states_img, non_final_next_states_scr = \
+        state_batch_to_tensor([s for s in batch.next_state if s is not None])
     state_img_batch, state_scr_batch = state_batch_to_tensor(batch.state)
     reward_batch = torch.cat(batch.reward)
     action_batch = torch.cat(batch.action)
@@ -137,6 +138,7 @@ def optimize_model(policy_net, target_net, optimizer, memory, device):
     torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
     optimizer.step()
 
+
 def main():
     device = torch.device(
         "cuda" if torch.cuda.is_available() else
@@ -158,12 +160,14 @@ def main():
 
     scores = np.zeros(num_episodes)
 
-    for i_episode in range(1,num_episodes+1):
+    for i_episode in range(1, num_episodes+1):
         # Initialize the environment and get its state
-        print("=========episode %d========"%i_episode)
+        print("=========episode %d========" % i_episode)
         state, info = env.reset()
         # state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
         for t in count():
+            if t % FPS_RATE == 0:
+                print(t//FPS_RATE)
             eps_threshold = EPS_END + (EPS_START - EPS_END) * \
                 np.exp(-1. * steps_done / EPS_DECAY)
             steps_done += 1
@@ -180,7 +184,7 @@ def main():
 
             # Store the transition in memory
             memory.push(state,
-                        torch.tensor([action]),
+                        torch.tensor(action, device=device).unsqueeze(0),
                         next_state,
                         reward)
 
@@ -195,23 +199,25 @@ def main():
             target_net_state_dict = target_net.state_dict()
             policy_net_state_dict = policy_net.state_dict()
             for key in policy_net_state_dict:
-                target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
+                target_net_state_dict[key] = \
+                    policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
             target_net.load_state_dict(target_net_state_dict)
-            
+
             if done:
+                print("reward of ep %d: %d" % (i_episode, scores[i_episode - 1]))
                 break
-        
+
         if i_episode % TORCH_CHECKPOINT_FREQ == 0:
             torch.save({
                 "episode": i_episode,
                 "reward": scores[i_episode-1],
-                "policy_net_dict": policy_net.state_dict(), 
-                "target_net_dict": target_net.state_dict(), 
-                "optimizer_state_dict": optimizer.state_dict(), 
+                "policy_net_dict": policy_net.state_dict(),
+                "target_net_dict": target_net.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
             }, "%scheckpoint_%d.pt" % (checkpoint_location, i_episode))
+            np.save("../saves/scores/scores.npy", scores)
 
     env.close()
-    np.save("../saves/scores/scores.npy", scores)
 
     # plt.plot(scores)
     # plt.show()
