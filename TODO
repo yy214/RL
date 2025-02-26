@@ -1,9 +1,11 @@
-TODO: playable with RL
-    CHECK: fix multidiscrete / multimodal input compatibility
+refactor replay buffer: what data structure / what types of data?
 
-FIX: np.random.choice(self.memory, batch_size) -> TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
+best / 2nd best action + correct structure -> ipynb
+how to pretrain -> test pretrain right away !
 
-TODO: n-step return
+if out of bounds, game stop
+n-step
+
 
 TODO: test criterias:
     # result of each game
@@ -12,9 +14,3 @@ TODO: test criterias:
     # get my best perf :)
 
 TODO: test without prioritized experience replay first (epsilon greedy)
-TODO: prioritized experience replay implem
-
-
-TODO: save personal gameplay
-    # press anything to start
-    # reset if R pressed
