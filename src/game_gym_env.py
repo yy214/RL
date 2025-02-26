@@ -47,6 +47,19 @@ class CarGameEnv(gym.Env):
             "boostsLeft":self.game.car.boostCount
         }
 
+    def observation_space_sample(self):
+        r""" 
+        Use this instead of env.observation_space.sample() as the output is a np.array of dim 0 
+        instead of a float
+        """
+        sample = self.observation_space.sample()
+        return {
+            "image": sample["image"],
+            "speed": sample["speed"].item(),
+            "currLap": sample["currLap"],
+            "boostsLeft": sample["boostsLeft"]
+        }
+
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self.game.reset()
