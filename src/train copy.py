@@ -1,5 +1,6 @@
-# greatly adapted from https://github.com/hw9603/DQfD-PyTorch/
+# greatly adapted from https://github.com/hw9603/DQfD-PyTorch/ + https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
 
+import os
 import numpy as np
 import random
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from dqn import DQN, select_action, get_q_a_values, get_q_values, evaluate_q_a
-from replay_buff import Transition, Memory
+from replay_buff import Transition, TransitionDemo, Memory
 
 from utils import state_batch_to_tensor
 from config import FPS_RATE, TIME_LIMIT
@@ -21,33 +22,62 @@ from game_gym_env import CarGameEnv
 
 savegame_location = "../saves/games/"
 checkpoint_location = "../saves/checkpoints/"
+execution_name = "only_pretrain"
+
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else
+    "mps" if torch.backends.mps.is_available() else
+    "cpu"
+)
 
 
-def loadDemonstrations():
-    TODO: check struct of replays
+def storeDemoTransition(s, a, s_, r, memory):
+    # episodeReplay = demoReplay[demoEpisode] # for n-step
+    # index = len(episodeReplay)
+    # data = (s, a, r, s_, done, (demoEpisode, index))
+    # episodeReplay.append(data)
+    if r > 1:  # hardcoded: detects if done
+        s_ = None
+    data = TransitionDemo(s,
+                          torch.tensor(a, device=device).unsqueeze(0),
+                          s_,
+                          torch.tensor([r], device=device),
+                          True)
+    memory.add(data)
 
 
-def storeDemoTransition(s, a, r, s_, done, demoEpisode):
-    s = torch.Tensor(s) FIX HERE
-    s_ = torch.Tensor(s_) FIX HERE
-    episodeReplay = self.demoReplay[demoEpisode]  # replay of certain demo episode
-    index = len(episodeReplay) WHY
-    data = (s, a, r, s_, done, (demoEpisode, index))
-    episodeReplay.append(data)
-    replay.add(data)
-
-def storeTransition(self, s, a, r, s_, done):
-    s = torch.Tensor(s) FIX HERE
-    s_ = torch.Tensor(s_) FIX HERE
-    replay.add((s, a, r, s_, done, None))
+def storeTransition(self, s, a, s_, r, done, memory):
+    if done:
+        s_ = None
+    memory.add(TransitionDemo(s,
+                              torch.tensor(a, device=device).unsqueeze(0),
+                              s_,
+                              torch.tensor([r], device=device),
+                              None))
 
 
-def getQValues(batch, policy_net, target_net, device):
+def loadDemonstrations(memory):
+    for entry in os.listdir(savegame_location):
+        full_path = os.path.join(savegame_location, entry)
+        if not os.path.isfile(full_path):
+            continue
+        with open(full_path, "rb") as file:
+            print(f"Reading {full_path}:")
+            loaded = pickle.load(file)  # deque
+            for t in loaded:
+                storeDemoTransition(t.state,
+                                    t.action,
+                                    t.next_state,
+                                    t.reward,
+                                    memory)
+
+
+def getQValues(batch, policy_net, target_net):
     # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
     # detailed explanation). This converts batch-array of Transitions
     # to Transition of batch-arrays.
-    batch = Transition(*zip(*batch)) #CHECK HERE
-    
+    batch = TransitionDemo(*zip(*batch))
+
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
@@ -76,39 +106,43 @@ def getQValues(batch, policy_net, target_net, device):
 
     return state_action_values, next_state_action_values
 
-def getSupervisedQ(q_values, aE):
-    a1 = [torch.argmax(q_values, dim=1).detach().cpu().numpy()[0] for q in q_values]
-    if (a1==aE).all():
-        a_seconds = None
-        differences = q_values[a1] - q_values[a_seconds] #FIX HERE
-        ind = argmax of differences
-        a1[ind] = a_seconds[ind]
-    return evaluate_q_a(q_values, a1)
+# def getSupervisedQ(q_values, aE):
+#     a1 = [torch.argmax(q_values, dim=1).detach().cpu().numpy()[0] for q in q_values]
+#     if (a1==aE).all():
+#         a_seconds = None
+#         differences = q_values[a1] - q_values[a_seconds] #FIX HERE
+#         ind = argmax of differences
+#         a1[ind] = a_seconds[ind]
+#     return evaluate_q_a(q_values, a1)
+
 
 def calcSupervisedLoss(batch, policy_net):
-    loss = torch.tensor(0.0)
-    count = 0  # number of demo
-    for s, aE, *_, isdemo in batch:
-        if isdemo is None:
-            continue
-        img, scr = state_batch_to_tensor([s])
-        q_values = policy_net(img, scr)
-        QE = evaluate_q_a(q_values, aE)  # aE may be incorrect in format
-        A1, A2 = np.array(A)[:2]  # action with largest and second largest Q
-        maxA = A2 if (A1 == aE).all() else A1
-        Q = get_q_a_values(policy_net, img, scr, maxA)
-        if (Q + rl_config.DIFF_MOVE_PENALTY) < QE:
-            continue
-        else:
-            loss += (Q - QE)[0]
-            count += 1
-    return loss / count if count != 0 else loss
+    return 0  # TODO
+    # loss = torch.tensor(0.0)
+    # count = 0  # number of demo
+    # for s, aE, *_, isdemo in batch:
+    #     if isdemo is None:
+    #         continue
+    #     img, scr = state_batch_to_tensor([s])
+    #     q_values = policy_net(img, scr)
+    #     QE = evaluate_q_a(q_values, aE)  # aE may be incorrect in format
+    #     A1, A2 = np.array(A)[:2]  # action with largest and second largest Q
+    #     maxA = A2 if (A1 == aE).all() else A1
+    #     Q = get_q_a_values(policy_net, img, scr, maxA)
+    #     if (Q + rl_config.DIFF_MOVE_PENALTY) < QE:
+    #         continue
+    #     else:
+    #         loss += (Q - QE)[0]
+    #         count += 1
+    # return loss / count if count != 0 else loss
+
 
 def calcNStepLoss():
-    return 0 # TODO
+    return 0  # TODO
+
 
 # CHECK
-def optimizeModel(optimizer, replay_buff, policy_net, target_net):
+def optimize_model(policy_net, target_net, optimizer, replay_buff):
     batch, idxs, weights = replay_buff.sample(rl_config.BATCH_SIZE)
     state_action_values, next_state_action_values = \
         getQValues(batch, policy_net, target_net, device)
@@ -117,7 +151,10 @@ def optimizeModel(optimizer, replay_buff, policy_net, target_net):
         td_err = state_action_values[i] - next_state_action_values[i]
         replay_buff.update(idxs[i], abs(td_err))
 
-    td_loss = (weights * F.smooth_l1_loss(state_action_values, next_state_action_values, reduction="none")).mean()
+    td_loss = (weights
+               * F.smooth_l1_loss(state_action_values,
+                                  next_state_action_values,
+                                  reduction="none")).mean()
     total_loss = td_loss \
         + rl_config.EXPERT_LOSS_WEIGHT*calcSupervisedLoss() \
         + rl_config.N_STEP_LOSS_WEIGHT*calcNStepLoss()
@@ -129,36 +166,40 @@ def optimizeModel(optimizer, replay_buff, policy_net, target_net):
     optimizer.step()
 
     # return to check if the pretraining can be stopped early
-    return total_loss 
+    return total_loss
+
 
 def updateTargetNet(policy_net, target_net):
     target_net.load_state_dict(policy_net.state_dict)
     target_net.eval()
 
-def pretrainingLoop():
+
+def pretrainingLoop(nb_steps, policy_net, target_net, optimizer, memory):
     TARGET_UPDATE_FREQ = 1000
     loss = 0
-    for i in range(1, rl_config.PRETRAINING_STEPS+1):
-        loss += optimizeModel()
+    for i in range(1, nb_steps+1):
+        loss += optimize_model(policy_net, target_net, optimizer, memory)
         if i % TARGET_UPDATE_FREQ == 0:
-            print("pretraining %d/%d: %.2f" 
-                  % (i, rl_config.PRETRAINING_STEPS, loss//TARGET_UPDATE_FREQ))
-            # TODO: if loss small then no need to continue training
+            print("pretraining %d/%d: %.2f"
+                  % (i, nb_steps, loss//TARGET_UPDATE_FREQ))
+            # TODO? if loss small then no need to continue training
+
 
 def main():
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() else
-        "mps" if torch.backends.mps.is_available() else
-        "cpu"
-    )
     policy_net = DQN().to(device)
     target_net = DQN().to(device)
     target_net.load_state_dict(policy_net.state_dict())
 
-    optimizer = optim.AdamW(policy_net.parameters(), lr=rl_config.LR, amsgrad=True, weight_decay=rl_config.L2_LOSS_WEIGHT)
-    
+    optimizer = optim.AdamW(policy_net.parameters(),
+                            lr=rl_config.LR,
+                            amsgrad=True,
+                            weight_decay=rl_config.L2_LOSS_WEIGHT)
+
     memory = Memory(rl_config.BATCH_SIZE)
-    demoReplay = loadDemonstrations()
+    loadDemonstrations(memory)
+    pretrainingLoop(rl_config.PRETRAINING_STEPS, policy_net, target_net, optimizer, memory)
+
+    return  # TODO: check pretraining
 
     steps_done = 0
 
@@ -180,47 +221,38 @@ def main():
                 np.exp(-1. * steps_done / rl_config.EPS_DECAY)
             steps_done += 1
             action = select_action(env, policy_net, state, eps_threshold)
-            observation, reward, terminated, truncated, _ = env.step(action)
-            reward = torch.tensor([reward], device=device)
+            next_state, reward, terminated, truncated, _ = env.step(action)
             scores[i_episode-1] += reward
             done = terminated or truncated
-            if terminated:
-                next_state = None
-            else:
-                next_state = observation
-                # torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
 
             # Store the transition in memory
-            memory.push(state,
-                        torch.tensor(action, device=device).unsqueeze(0),
-                        next_state,
-                        reward)
+            storeTransition(state, action, next_state, reward, done, memory)
 
             # Move to the next state
             state = next_state
 
             # Perform one step of the optimization (on the policy network)
-            optimize_model(policy_net, target_net, optimizer, memory, device)
+            optimize_model(policy_net, target_net, optimizer, memory)
 
             if done:
                 print("reward of ep %d: %d" % (i_episode, scores[i_episode - 1]))
                 break
-        
+
         updateTargetNet(policy_net, target_net)
 
         if i_episode % rl_config.TORCH_CHECKPOINT_FREQ == 0:
             torch.save({
                 "episode": i_episode,
-                "reward": scores[i_episode-1],
                 "policy_net_dict": policy_net.state_dict(),
-                # "target_net_dict": target_net.state_dict(), # policy_net = target_net at the end of episode
+                "target_net_dict": target_net.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
-            }, "%scheckpoint_%d.pt" % (checkpoint_location, i_episode))
-            np.save("../saves/scores/scores.npy", scores)
-            
-            TODO: save replay buffer
+            }, "%s%s_%d.pt" % (checkpoint_location, execution_name, i_episode))
+            with open("../saves/games/%s_%d.pkl" % (execution_name, i_episode), "wb") as f:
+                pickle.dump(memory.tree, f)
+            np.save("../saves/scores/%s_scores.npy" % execution_name, scores)
 
     env.close()
+
 
 if __name__ == "__main__":
     main()

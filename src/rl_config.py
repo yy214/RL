@@ -14,8 +14,8 @@ EPS_DECAY = 1000
 
 # demonstrations
 PRETRAINING_STEPS = 100*1000
-DEMO_BONUS = 5e-3 # same as in https://github.com/hw9603/DQfD-PyTorch/
-DIFF_MOVE_PENALTY = 0.1 # for supervised loss
+DEMO_BONUS = 5e-3  # same as in https://github.com/hw9603/DQfD-PyTorch/
+DIFF_MOVE_PENALTY = 0.1  # for supervised loss
 
 # combining losses
 N_STEP_LOSS_WEIGHT = 1
