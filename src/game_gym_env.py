@@ -69,7 +69,7 @@ class CarGameEnv(gym.Env):
         # steerDirection, isAccelerating, isBreaking, tryBoosting = action
         reward = self.game.inputProcessing(*action)
         # if rendermode = human then self.game.display(DEBUG=True)
-        self.game.timeUpdate()
+        self.game.timeUpdate(FPS_RATE if self.render_mode == "human" else None)
 
         truncated = self.game.timer >= TIME_LIMIT
 
