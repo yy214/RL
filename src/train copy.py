@@ -22,6 +22,10 @@ from game_gym_env import CarGameEnv
 
 savegame_location = "../saves/games/"
 checkpoint_location = "../saves/checkpoints/"
+NEED_PRETRAIN = True
+NO_RL_TRAIN = True
+starting_state_dict = None
+starting_ep = 0
 execution_name = "only_pretrain"
 
 device = torch.device(
@@ -62,7 +66,7 @@ def loadDemonstrations(memory):
         if not os.path.isfile(full_path):
             continue
         with open(full_path, "rb") as file:
-            print(f"Reading {full_path}:")
+            print(f"Reading {full_path}")
             loaded = pickle.load(file)  # deque
             for t in loaded:
                 storeDemoTransition(t.state,
@@ -116,7 +120,7 @@ def getQValues(batch, policy_net, target_net):
 #     return evaluate_q_a(q_values, a1)
 
 
-def calcSupervisedLoss(batch, policy_net):
+def calcSupervisedLoss():
     return 0  # TODO
     # loss = torch.tensor(0.0)
     # count = 0  # number of demo
@@ -144,13 +148,17 @@ def calcNStepLoss():
 # CHECK
 def optimize_model(policy_net, target_net, optimizer, replay_buff):
     batch, idxs, weights = replay_buff.sample(rl_config.BATCH_SIZE)
+    weights = torch.tensor(weights).to(device)
     state_action_values, next_state_action_values = \
-        getQValues(batch, policy_net, target_net, device)
+        getQValues(batch, policy_net, target_net)
 
     for i in range(rl_config.BATCH_SIZE):
         td_err = state_action_values[i] - next_state_action_values[i]
         replay_buff.update(idxs[i], abs(td_err))
 
+    # print(F.smooth_l1_loss(state_action_values,
+    #                        next_state_action_values,
+    #                        reduction="none").shape, weights.shape)
     td_loss = (weights
                * F.smooth_l1_loss(state_action_values,
                                   next_state_action_values,
@@ -170,23 +178,29 @@ def optimize_model(policy_net, target_net, optimizer, replay_buff):
 
 
 def updateTargetNet(policy_net, target_net):
-    target_net.load_state_dict(policy_net.state_dict)
+    target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
 
 def pretrainingLoop(nb_steps, policy_net, target_net, optimizer, memory):
-    TARGET_UPDATE_FREQ = 1000
+    TARGET_UPDATE_FREQ = 100
     loss = 0
     for i in range(1, nb_steps+1):
         loss += optimize_model(policy_net, target_net, optimizer, memory)
         if i % TARGET_UPDATE_FREQ == 0:
             print("pretraining %d/%d: %.2f"
                   % (i, nb_steps, loss//TARGET_UPDATE_FREQ))
+            updateTargetNet(policy_net, target_net)
+            loss = 0
             # TODO? if loss small then no need to continue training
 
 
 def main():
     policy_net = DQN().to(device)
+    if starting_state_dict:
+        s_dict = torch.load(starting_state_dict)
+        policy_net.load_state_dict(s_dict)
+        policy_net.eval()
     target_net = DQN().to(device)
     target_net.load_state_dict(policy_net.state_dict())
 
@@ -197,9 +211,20 @@ def main():
 
     memory = Memory(rl_config.BATCH_SIZE)
     loadDemonstrations(memory)
-    pretrainingLoop(rl_config.PRETRAINING_STEPS, policy_net, target_net, optimizer, memory)
 
-    return  # TODO: check pretraining
+    if NEED_PRETRAIN:
+        pretrainingLoop(rl_config.PRETRAINING_STEPS,
+                        policy_net,
+                        target_net,
+                        optimizer,
+                        memory)
+
+    if NO_RL_TRAIN:  # check pretraining
+        torch.save({
+            "policy_net_dict": policy_net.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+        }, "%s%s.pt" % (checkpoint_location, execution_name))
+        return
 
     steps_done = 0
 
@@ -209,7 +234,7 @@ def main():
 
     scores = np.zeros(num_episodes)
 
-    for i_episode in range(1, num_episodes+1):
+    for i_episode in range(starting_ep + 1, num_episodes+1):
         # Initialize the environment and get its state
         print("=========episode %d========" % i_episode)
         state, info = env.reset()
@@ -244,7 +269,6 @@ def main():
             torch.save({
                 "episode": i_episode,
                 "policy_net_dict": policy_net.state_dict(),
-                "target_net_dict": target_net.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
             }, "%s%s_%d.pt" % (checkpoint_location, execution_name, i_episode))
             with open("../saves/games/%s_%d.pkl" % (execution_name, i_episode), "wb") as f:
