@@ -1,3 +1,5 @@
+# adapted from https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
+
 import numpy as np
 import random
 import matplotlib.pyplot as plt
@@ -17,6 +19,7 @@ import rl_config
 from game_gym_env import CarGameEnv
 
 checkpoint_location = "../saves/checkpoints/"
+execution_name = "non_supervised"
 
 
 def optimize_model(policy_net, target_net, optimizer, memory, device):
@@ -150,14 +153,15 @@ def main():
                 "policy_net_dict": policy_net.state_dict(),
                 "target_net_dict": target_net.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
-            }, "%scheckpoint_%d.pt" % (checkpoint_location, i_episode))
-            np.save("../saves/scores/scores.npy", scores)
+            }, "%s%s_%d.pt" % (checkpoint_location, execution_name, i_episode))
+            with open("../saves/games/%s_%d.pkl" % (execution_name, i_episode), "wb") as f:
+                pickle.dump(memory.memory, f)
+            np.save("../saves/scores/%s_scores.npy" % execution_name, scores)
 
     env.close()
 
     # plt.plot(scores)
     # plt.show()
-    # plt.savefig("../saves/scores/scores.png")
 
 
 if __name__ == "__main__":

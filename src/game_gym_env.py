@@ -18,7 +18,7 @@ class CarGameEnv(gym.Env):
         super(CarGameEnv, self).__init__()
 
         self.state = None
-        self.action_space = spaces.MultiDiscrete([3, 2, 2, 2]) # steer (-1, 0, 1), accel, brake, boost
+        self.action_space = spaces.MultiDiscrete([3, 2, 2, 2])  # steer (-1, 0, 1), accel, brake, boost
 
         image = spaces.Box(low=0, high=255, shape=FOV_SIZE, dtype=np.uint8)
         speed = spaces.Box(low=0.0, high=CAR_TOP_SPEED, shape=(), dtype=np.float32)
@@ -27,11 +27,11 @@ class CarGameEnv(gym.Env):
         boostsLeft = spaces.Discrete(CAR_INIT_SPEED_BOOST_COUNT+1)
 
         self.observation_space = spaces.Dict({
-            "image":image,
-            "speed":speed,
+            "image": image,
+            "speed": speed,
             # "timeLeft":timeLeft,
-            "currLap":currLap,
-            "boostsLeft":boostsLeft,
+            "currLap": currLap,
+            "boostsLeft": boostsLeft,
         })
         self.game = Game()
 
@@ -40,11 +40,11 @@ class CarGameEnv(gym.Env):
     
     def _get_state(self):
         return {
-            "image":get_rl_state(self.game.carViewWindow, self.game.lowresImg, self.game.car),
-            "speed":self.game.car.vel,
+            "image": get_rl_state(self.game.carViewWindow, self.game.lowresImg, self.game.car),
+            "speed": self.game.car.vel,
             # "timeLeft": TIME_LIMIT-self.game.timer,
-            "currLap":(self.game.score+1) // len(self.game.checkpoints),
-            "boostsLeft":self.game.car.boostCount
+            "currLap": (self.game.score+1) // len(self.game.checkpoints),
+            "boostsLeft": self.game.car.boostCount
         }
 
     def observation_space_sample(self):

@@ -3,10 +3,13 @@ from collections import namedtuple, deque
 import numpy as np
 import random
 
+from rl_config import DEMO_BONUS
+
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
-TransitionDone = namedtuple('TransitionDone',
-                        ('state', 'action', 'next_state', 'reward', 'done'))
+TransitionDemo = namedtuple('TransitionDemo',
+                            ('state', 'action', 'next_state', 'reward', 'isDemo'))
+
 
 class ReplayMemory(object):
     def __init__(self, capacity):
@@ -22,6 +25,7 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
+
 
 # from https://github.com/rlcode/per/
 class SumTree:
@@ -86,6 +90,7 @@ class SumTree:
 
         return (idx, self.tree[idx], self.data[dataIdx])
 
+
 # from https://github.com/rlcode/per/
 class Memory:  # stored as ( s, a, r, s_ ) in SumTree
     a = 0.6
@@ -98,11 +103,11 @@ class Memory:  # stored as ( s, a, r, s_ ) in SumTree
         self.capacity = capacity
 
     def _get_priority(self, error):
-        return (error + self.EPSILON) ** self.a
+        return (error + self.EPSILON) ** self.a  # TODO: add demonstration bonus
 
-    def add(self, sample, error=None):
+    def add(self, sample: TransitionDemo, error=None):
         if error is None:
-            p = self.tree.tree[0] #max priority for new data
+            p = self.tree.tree[0]  # max priority for new data
             if p == 0:
                 p = 0.1
             else:
