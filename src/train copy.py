@@ -22,11 +22,11 @@ from game_gym_env import CarGameEnv
 
 savegame_location = "../saves/games/"
 checkpoint_location = "../saves/checkpoints/"
-NEED_PRETRAIN = True
-NO_RL_TRAIN = True
-starting_state_dict = None
+NEED_PRETRAIN = False
+NO_RL_TRAIN = False
+starting_state_dict = "../saves/checkpoints/only_pretrain.pt"
 starting_ep = 0
-execution_name = "only_pretrain"
+execution_name = "pretrain_n_RL"
 
 device = torch.device(
     "cuda" if torch.cuda.is_available() else
