@@ -216,13 +216,14 @@ def main():
                 "target_net_dict": target_net.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
             }, "%scheckpoint_%d.pt" % (checkpoint_location, i_episode))
+            with open("../saves/games/replay_%d.pkl" % i_episode, "wb") as f:
+                pickle.dump(memory.memory, f)
             np.save("../saves/scores/scores.npy", scores)
 
     env.close()
 
     # plt.plot(scores)
     # plt.show()
-    # plt.savefig("../saves/scores/scores.png")
 
 
 if __name__ == "__main__":
