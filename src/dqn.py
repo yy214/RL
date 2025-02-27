@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 from utils import state_batch_to_tensor
 
+
 class DQN(nn.Module):
 
     def __init__(self):
@@ -51,15 +52,18 @@ def select_action(env, policy_net, state, eps_threshold):
     else:
         return env.action_space.sample()
 
+
 def evaluate_q_a(q, a):
     return torch.stack([
         q[i].gather(1, a[:, i].unsqueeze(1)).squeeze(1)
         for i in range(len(q))
     ], dim=1).sum(dim=1)
 
+
 def get_q_a_values(net, state_img_batch, state_scr_batch, action_batch=None):
     # calculates Q(s,a)
     return evaluate_q_a(net(state_img_batch, state_scr_batch), action_batch)
+
 
 def get_q_values(net, state_img_batch, state_scr_batch):
     # calculate max Q(s)
