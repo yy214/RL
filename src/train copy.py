@@ -27,7 +27,7 @@ replay_buff_save_location = "../saves/replay_buffs/"
 checkpoint_location = "../saves/checkpoints/"
 NEED_PRETRAIN = True  # if you need the pretrain part
 NO_RL_TRAIN = True  # if you only want the pretrain part
-starting_state_dict = None  # "../saves/checkpoints/only_pretrain.pt"
+starting_state_dict = None  # if not None, loads a state_dict as initialization. Useful if you have a pretrained model
 starting_ep = 0
 execution_name = "pretrain_n_step"
 

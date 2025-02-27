@@ -3,7 +3,7 @@ from dqn import DQN, select_action
 import torch
 from config import FPS_RATE
 
-checkpoint_location = "../saves/checkpoints/pretrain_n_RL_150.pt"
+checkpoint_location = "../saves/checkpoints/pretrain_n_step.pt"
 
 def main():
     env = CarGameEnv(render_mode="human")
