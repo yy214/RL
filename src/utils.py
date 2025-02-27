@@ -59,11 +59,11 @@ def get_rl_state(carViewWindow, lowresImg, car):
     # input_tensor = input_tensor.unsqueeze(0) #[1, 1, height, width]
 
 
-def state_batch_to_tensor(state_batch):
+def state_batch_to_tensor(state_batch, device="cuda:0"):
     images = torch.tensor(np.array([s["image"] / 255.0 for s in state_batch]))\
-        .to(torch.float32).unsqueeze(1).to(device="cuda:0")
+        .to(torch.float32).unsqueeze(1).to(device=device)
     scalars = torch.tensor(np.array([[s["speed"] / CAR_TOP_SPEED,
                                       s["currLap"] / LAP_COUNT,
                                       s["boostsLeft"] / CAR_INIT_SPEED_BOOST_COUNT]
-                                    for s in state_batch])).to(torch.float32).to(device="cuda:0")
+                                    for s in state_batch])).to(torch.float32).to(device=device)
     return images, scalars

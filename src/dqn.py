@@ -37,11 +37,11 @@ class DQN(nn.Module):
         return torch.split(q_values, [3, 2, 2, 2], dim=1)
 
 
-def select_action(env, policy_net, state, eps_threshold):
+def select_action(env, policy_net, state, eps_threshold, device="cuda:0"):
     # epsilon-greedy approach
     sample = np.random.uniform()
     if sample > eps_threshold:
-        image, scalar = state_batch_to_tensor([state])
+        image, scalar = state_batch_to_tensor([state], device)
         q_values = policy_net(image, scalar)
         with torch.no_grad():
             # Take highest Q-value per action
