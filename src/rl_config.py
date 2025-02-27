@@ -7,6 +7,8 @@ GAMMA = 0.99
 LR = 1e-4
 REPLAY_BUFF_SIZE = 1000*1000
 
+N_STEP = 10
+
 # epsilon-greedy
 EPS_START = 0.9
 EPS_END = 0.05
