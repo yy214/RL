@@ -21,6 +21,7 @@ import rl_config
 from game_gym_env import CarGameEnv
 
 savegame_location = "../saves/games/"
+replay_buff_save_location = "../saves/replay_buffs/"
 checkpoint_location = "../saves/checkpoints/"
 NEED_PRETRAIN = False
 NO_RL_TRAIN = False
@@ -50,7 +51,7 @@ def storeDemoTransition(s, a, s_, r, memory):
     memory.add(data)
 
 
-def storeTransition(self, s, a, s_, r, done, memory):
+def storeTransition(s, a, s_, r, done, memory):
     if done:
         s_ = None
     memory.add(TransitionDemo(s,
@@ -197,17 +198,17 @@ def pretrainingLoop(nb_steps, policy_net, target_net, optimizer, memory):
 
 def main():
     policy_net = DQN().to(device)
-    if starting_state_dict:
-        s_dict = torch.load(starting_state_dict)
-        policy_net.load_state_dict(s_dict)
-        policy_net.eval()
-    target_net = DQN().to(device)
-    target_net.load_state_dict(policy_net.state_dict())
-
     optimizer = optim.AdamW(policy_net.parameters(),
                             lr=rl_config.LR,
                             amsgrad=True,
                             weight_decay=rl_config.L2_LOSS_WEIGHT)
+    if starting_state_dict:
+        s_dict = torch.load(starting_state_dict)
+        policy_net.load_state_dict(s_dict["policy_net_dict"])
+        policy_net.eval()
+        optimizer.load_state_dict(s_dict["optimizer_state_dict"])
+    target_net = DQN().to(device)
+    target_net.load_state_dict(policy_net.state_dict())
 
     memory = Memory(rl_config.BATCH_SIZE)
     loadDemonstrations(memory)
@@ -271,7 +272,7 @@ def main():
                 "policy_net_dict": policy_net.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
             }, "%s%s_%d.pt" % (checkpoint_location, execution_name, i_episode))
-            with open("../saves/games/%s_%d.pkl" % (execution_name, i_episode), "wb") as f:
+            with open("%s%s_%d.pkl" % (replay_buff_save_location, execution_name, i_episode), "wb") as f:
                 pickle.dump(memory.tree, f)
             np.save("../saves/scores/%s_scores.npy" % execution_name, scores)
 
