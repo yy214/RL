@@ -25,11 +25,11 @@ savegame_location = "../saves/games/"
 ignored_savegames = ["chaotic", "savegame"]
 replay_buff_save_location = "../saves/replay_buffs/"
 checkpoint_location = "../saves/checkpoints/"
-NEED_PRETRAIN = True  # if you need the pretrain part
-NO_RL_TRAIN = True  # if you only want the pretrain part
-starting_state_dict = None  # if not None, loads a state_dict as initialization. Useful if you have a pretrained model
+NEED_PRETRAIN = False  # if you need the pretrain part
+NO_RL_TRAIN = False  # if you only want the pretrain part
+starting_state_dict = "../saves/checkpoints/pretrain_n_step.pt"  # if not None, loads a state_dict as initialization. Useful if you have a pretrained model
 starting_ep = 0
-execution_name = "pretrain_n_step"
+execution_name = "pretrain_n_step_RL"  # name given to the saved files
 
 device = torch.device(
     "cuda" if torch.cuda.is_available() else

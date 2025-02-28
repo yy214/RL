@@ -11,6 +11,7 @@ TransitionDemo = namedtuple('TransitionDemo',
                             ('state', 'action', 'next_state', 'reward', 'isDemo'))
 
 
+# old implementation
 class ReplayMemory(object):
     def __init__(self, capacity):
         self.memory = deque([], maxlen=capacity)
